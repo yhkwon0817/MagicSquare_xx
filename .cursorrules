@@ -1,0 +1,40 @@
+# MagicSquare_xx — Session 3 (.cursorrules)
+
+## Entity (E) — 도메인
+
+- 격자: **4×4** `list[list[int]]`. 셀 값 **0**(빈칸) 또는 **1~16**.
+- **마법상수 34**. 부분 마방진: 빈칸 2개(0), 나머지 1~16 각 1회.
+- **10선** (합 34 대상): **R1~R4**(행), **C1~C4**(열), **D1**(주대각), **D2**(반대각).
+- 줄 ID: `row:0`~`row:3`, `col:0`~`col:3`, `diag:main`, `diag:anti`.
+- **R5**: 격자에 **0이 하나라도** 있으면 `status=incomplete` — 합 계산·34 비교 **하지 않음** (fail과 구분).
+- 세션 3 범위 밖: Solver, UI, BCE 전체, 1~16 중복·범위 검증.
+
+## Control (C) — Command
+
+- **API**: `validate_lines(grid) -> dict`
+  - `status`: `"pass"` | `"fail"` | `"incomplete"`
+  - `failed_lines`: fail 시 틀린 줄만 `[{ "id", "sum", "expected": 34 }, ...]`
+- pass / incomplete 시 `failed_lines`는 빈 리스트.
+- 구현 위치: `src/validate_lines.py`. 테스트: `tests/test_validate_lines.py`.
+
+## Boundary (B) — 입출력·테스트 경계
+
+- **Input**: 완성 또는 미완성 4×4 격자.
+- **Output**: 위 dict. fail이면 **어느 줄**인지 ID·sum·expected로 식별 가능해야 함.
+- pytest: `pyproject.toml`의 `testpaths`/`pythonpath` 준수.
+
+## TDD — Test Loop
+
+- 사이클: **RED → GREEN → REFACTOR**. 한 번에 한 Phase만.
+- **RED**: `tests/`만 수정. 실패하는 테스트·fixture 추가. `src/`는 건드리지 않음.
+- **GREEN**: 테스트를 통과시키는 최소 구현만 `src/`에 추가.
+- **REFACTOR**: Green 유지하며 정리. 동작 변경 없음.
+- **금지**: assert 완화, `@pytest.mark.skip`, `xfail`, 테스트 삭제로 Red 회피.
+- Red 예: 합≠34 → `status=fail` + `failed_lines`; 0 포함 → `incomplete`; 정답 격자 → `pass`.
+
+## AI 협업 규칙
+
+- **한국어**로 설명·주석·커밋 메시지 초안 작성.
+- TDD 작업 시 **응답 첫 줄**에 Phase 선언: `[RED]`, `[GREEN]`, `[REFACTOR]`.
+- **git commit / push**는 사용자가 명시적으로 요청할 때만 수행.
+- 범위: Rule(R1~R5) + `validate_lines` + Test Loop. 솔루션·UI·솔버 확장 금지.
