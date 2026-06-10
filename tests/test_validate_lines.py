@@ -1,5 +1,3 @@
-import pytest
-
 from validate_lines import validate_lines
 
 MAGIC = 34
@@ -11,9 +9,9 @@ VALID_GRID = [
     [4, 15, 14, 1],
 ]
 
-# T2: R1(row:0) 합 33 — VALID_GRID에서 (0,0) 16→15
+# T2: R1(row:0) 합 33 — (0,3) 13→12 (col:3·diag:anti도 33으로 연동)
 WRONG_ROW_GRID = [
-    [15, 3, 2, 13],
+    [16, 3, 2, 12],
     [5, 10, 11, 8],
     [9, 6, 7, 12],
     [4, 15, 14, 1],
@@ -27,7 +25,7 @@ INCOMPLETE_GRID = [
     [4, 15, 14, 1],
 ]
 
-# T4: 주대각(diag:main)만 합 35 — 행·열 보정으로 대각만 ≠ 34
+# T4: 주대각(diag:main) 합 35 — 행·열 보정 시도, row:2·col:1도 33
 WRONG_DIAG_GRID = [
     [17, 2, 2, 13],
     [5, 10, 11, 8],
@@ -53,13 +51,12 @@ def test_grid_with_zero_returns_incomplete():
     result = validate_lines(grid)
 
     # Assert
-    # TODO: assert result["status"] == "incomplete"
-    # TODO: assert result["failed_lines"] == []
-    pytest.fail("RED skeleton — assert pending")
+    assert result["status"] == "incomplete"
+    assert result["failed_lines"] == []
 
 
-def test_complete_valid_grid_returns_pass():
-    # T1
+def test_golden_master_valid_grid_regression():
+    # T1 · Golden master — 회귀 시 이 격자·기대값 불변
     # Arrange
     grid = VALID_GRID
 
@@ -67,9 +64,8 @@ def test_complete_valid_grid_returns_pass():
     result = validate_lines(grid)
 
     # Assert
-    # TODO: assert result["status"] == "pass"
-    # TODO: assert result["failed_lines"] == []
-    pytest.fail("RED skeleton — assert pending")
+    assert result["status"] == "pass"
+    assert result["failed_lines"] == []
 
 
 def test_wrong_row_sum_returns_fail_with_line_detail():
@@ -81,11 +77,12 @@ def test_wrong_row_sum_returns_fail_with_line_detail():
     result = validate_lines(grid)
 
     # Assert
-    # TODO: assert result["status"] == "fail"
-    # TODO: assert result["failed_lines"] == [
-    # TODO:     {"id": "row:0", "sum": 33, "expected": MAGIC},
-    # TODO: ]
-    pytest.fail("RED skeleton — assert pending")
+    assert result["status"] == "fail"
+    assert result["failed_lines"] == [
+        {"id": "row:0", "sum": 33, "expected": MAGIC},
+        {"id": "col:3", "sum": 33, "expected": MAGIC},
+        {"id": "diag:anti", "sum": 33, "expected": MAGIC},
+    ]
 
 
 def test_wrong_diagonal_sum_returns_fail_with_line_detail():
@@ -97,11 +94,12 @@ def test_wrong_diagonal_sum_returns_fail_with_line_detail():
     result = validate_lines(grid)
 
     # Assert
-    # TODO: assert result["status"] == "fail"
-    # TODO: assert result["failed_lines"] == [
-    # TODO:     {"id": "diag:main", "sum": 35, "expected": MAGIC},
-    # TODO: ]
-    pytest.fail("RED skeleton — assert pending")
+    assert result["status"] == "fail"
+    assert result["failed_lines"] == [
+        {"id": "row:2", "sum": 33, "expected": MAGIC},
+        {"id": "col:1", "sum": 33, "expected": MAGIC},
+        {"id": "diag:main", "sum": 35, "expected": MAGIC},
+    ]
 
 
 def test_multiple_wrong_lines_returns_fail_with_line_detail():
@@ -113,9 +111,8 @@ def test_multiple_wrong_lines_returns_fail_with_line_detail():
     result = validate_lines(grid)
 
     # Assert
-    # TODO: assert result["status"] == "fail"
-    # TODO: assert result["failed_lines"] == [
-    # TODO:     {"id": "row:0", "sum": 33, "expected": MAGIC},
-    # TODO:     {"id": "col:1", "sum": 33, "expected": MAGIC},
-    # TODO: ]
-    pytest.fail("RED skeleton — assert pending")
+    assert result["status"] == "fail"
+    assert result["failed_lines"] == [
+        {"id": "row:0", "sum": 33, "expected": MAGIC},
+        {"id": "col:1", "sum": 33, "expected": MAGIC},
+    ]
