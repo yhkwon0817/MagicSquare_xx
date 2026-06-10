@@ -2,7 +2,7 @@
 
 **문서 ID**: `docs/PRD.md`  
 **프로젝트**: MagicSquare_xx · 세션 3  
-**버전**: 0.1 (초안)  
+**버전**: 0.2 (초안)  
 **작성일**: 2026-06-10  
 **SSOT 우선순위**: 본 PRD ↔ [`.cursorrules`](../.cursorrules) — API·Rule·TDD는 **동일**. 충돌 시 `.cursorrules`가 구현·테스트 기준.
 
@@ -193,19 +193,43 @@ def validate_lines(grid: list[list[int]]) -> dict:
 
 ---
 
-## §7. Test Scenarios (T1~T5)
+## §7. Test Scenarios · TEST ID (T1~T5)
 
-RED·GREEN·golden master에서 **필수**로 다루는 시나리오.
+RED·GREEN·golden master에서 **필수**로 다루는 시나리오. 각 시나리오의 **TEST ID**는 **T1~T5**이다.
 
-| ID | 시나리오 | Arrange | 기대 status | failed_lines |
-|----|----------|---------|-------------|--------------|
-| **T1** | 표준 4×4 마방진 (0 없음, 10선 합 34) | `VALID_GRID` *(§7.1)* | `pass` | `[]` |
+| TEST ID | 시나리오 | Arrange | 기대 status | failed_lines |
+|---------|----------|---------|-------------|--------------|
+| **T1** | 표준 4×4 마방진 (0 없음, 10선 합 34) | `VALID_GRID` *(§7.3)* | `pass` | `[]` |
 | **T2** | **행** 하나 합 ≠ 34 (예: `row:0`, sum 33) | T1에서 R1 한 셀 변경 | `fail` | `[{id:"row:0", sum:33, expected:34}]` |
 | **T3** | 격자에 **0**(빈칸) 포함 | 임의 완성 격자에 0 삽입 | `incomplete` | `[]` |
 | **T4** | **대각선만** ≠ 34 | T1에서 주대각 또는 반대각만 변경 | `fail` | `diag:main` 또는 `diag:anti` + sum |
 | **T5** | **여러 줄** 동시 ≠ 34 | 행·열 등 2줄 이상 동시 오류 | `fail` | **모든** 틀린 줄 ID·sum |
 
-### 7.1 Golden Master — VALID_GRID
+### 7.1 TEST ID 정의
+
+| 구분 | ID 체계 | 용도 | 예 |
+|------|---------|------|-----|
+| **TEST ID** | **T1~T5** | pytest 시나리오·AC 추적·`/red-test-plan` 매트릭스 | T4 = 대각 단독 fail |
+| **AC ID** | **AC1~AC6** | 수용 기준 (§6) | AC4 = incomplete 구분 |
+| **줄 ID** | `row:*` · `col:*` · `diag:*` | `failed_lines[].id` — API 출력 | `diag:main` |
+
+- TEST ID와 줄 ID는 **다른 체계**이다. T2는 TEST ID이고, 그 테스트가 assert하는 `failed_lines` 항목의 `id`가 줄 ID이다.
+- T1~T5는 세션 3 **필수** 테스트다. `/red-skeleton`·`/tdd-red`·`/golden-master`·체크리스트에서 동일 ID를 사용한다.
+
+### 7.2 AC ↔ TEST ID 추적 매트릭스
+
+| TEST ID | 커버 AC | Mom Test · 비고 |
+|---------|---------|-----------------|
+| **T1** | AC1, AC2, AC3 | 10선 한 번 호출 · pass · golden master 앵커 |
+| **T2** | AC1, AC5, AC6 | 행 단일 fail · 줄 ID·sum·expected assert |
+| **T3** | AC4 | R5 incomplete · 합 검증 생략 |
+| **T4** | AC1, AC5, AC6 | **대각 누락** 방지 — 대각 단독 fail |
+| **T5** | AC1, AC5, AC6 | 다중 fail — **모든** 틀린 줄 누락 없이 assert |
+
+- **AC1**은 모든 TEST ID에 공통: Act는 `validate_lines(grid)` **한 번**만 호출한다.
+- 워크북 성공 기준 #2(Red→Green)는 **T3 → T1 → T2 → T4 → T5** RED 순서로 커버한다 *(§8.3 `/red-test-plan`)*.
+
+### 7.3 Golden Master — VALID_GRID
 
 ```python
 VALID_GRID = [
@@ -219,12 +243,27 @@ VALID_GRID = [
 - T1 · `/golden-master` 회귀 앵커로 고정 (**값 변경 금지**)
 - 0 없음 · 10선 합 각 34
 
-### 7.2 테스트 작성 규칙
+### 7.4 TEST ID ↔ pytest 함수명 (권장)
+
+규칙: `test_<시나리오>_<기대status>`. 아래는 **권장 초안** — 의미가 같으면 변형 허용, TEST ID 매핑은 유지한다.
+
+| TEST ID | 권장 함수명 | 기대 status |
+|---------|-------------|-------------|
+| **T1** | `test_complete_valid_grid_returns_pass` | `pass` |
+| **T2** | `test_wrong_row_sum_returns_fail_with_line_detail` | `fail` |
+| **T3** | `test_grid_with_zero_returns_incomplete` | `incomplete` |
+| **T4** | `test_wrong_diagonal_sum_returns_fail_with_line_detail` | `fail` |
+| **T5** | `test_multiple_wrong_lines_returns_fail_with_line_detail` | `fail` |
+
+- T1이 `/golden-master`와 중복이면 **T1을 golden master로 승격**하고 함수 1개로 통합한다 *(`.cursor/commands/golden-master.md`)*.
+- fail 계열(T2·T4·T5)은 AC6에 따라 `failed_lines` 각 항목의 `id`·`sum`·`expected: 34`까지 assert한다.
+
+### 7.5 테스트 작성 규칙
 
 - **AAA**: Arrange → Act → Assert
-- **함수명**: `test_<시나리오>_<기대status>`
+- **함수명**: §7.4 권장명 또는 `test_<시나리오>_<기대status>` — **TEST ID(T1~T5)와 1:1 대응** 주석 권장
 - **Act**: `result = validate_lines(grid)` 한 번
-- **Assert**: `status`, `failed_lines` — fail 시 `id`·`sum`·`expected`까지
+- **Assert**: `status`, `failed_lines` — fail 시 줄 ID·`sum`·`expected`까지
 
 ---
 
@@ -307,9 +346,9 @@ pythonpath = ["src"]
 
 | # | 워크북 성공 기준 | PRD |
 |---|------------------|-----|
-| 1 | 한 Command로 10선×34 검증 | AC1 · §4.2 · §5 |
-| 2 | Red→Green: fail / incomplete / pass 재현 | T2·T3·T1 · §8 |
-| 3 | fail 시 줄 ID·sum·expected | AC5·AC6 · T2·T4·T5 |
+| 1 | 한 Command로 10선×34 검증 | AC1 · §4.2 · §5 · T1 |
+| 2 | Red→Green: fail / incomplete / pass 재현 | T3·T1·T2·T4·T5 · §7.2 · §8 |
+| 3 | fail 시 줄 ID·sum·expected | AC5·AC6 · T2·T4·T5 · §7.4 |
 
 ---
 
@@ -333,6 +372,7 @@ pythonpath = ["src"]
 | 버전 | 일자 | 변경 |
 |------|------|------|
 | 0.1 | 2026-06-10 | 초안 — Report/01·03·06 + `.cursorrules` + ARRR 커맨드 통합. `failed_lines` 계약 확정, R1~R4·T4·T5·pass/incomplete `failed_lines=[]` 보완 |
+| 0.2 | 2026-06-10 | §7 TEST ID(T1~T5) 정의 · AC↔TEST ID 추적 매트릭스 · pytest 권장 함수명(§7.4) 추가 |
 
 ---
 
